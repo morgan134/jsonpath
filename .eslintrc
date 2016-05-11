@@ -1,0 +1,4 @@
+{
+  "extends": "airbnb-base",
+  "no-eval": ["error", {"allowIndirect": true}] // default is false
+}
