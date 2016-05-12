@@ -6,9 +6,17 @@ export default class JsonPath {
     this.obj = obj;
     if (expr && obj && (this.resultType === 'VALUE' || this.resultType === 'PATH')) {
       this.trace(this.normalize(expr).replace(/^\$;?/, ''), obj, '$');
-      return this.result.length ? this.result : false;
+      // return this.result.length ? this.result : false;
     }
-    return false;
+    // return false;
+  }
+
+  static getValue(obj, exp) {
+    return new JsonPath(obj, exp, 'VALUE').result;
+  }
+
+  static getPath(obj, exp) {
+    return new JsonPath(obj, exp, 'PATH').result;
   }
 
   normalize(expr) {
@@ -40,23 +48,21 @@ export default class JsonPath {
       let x = expr.split(';');
       const loc = x.shift();
       x = x.join(';');
-      if (val && val.hasOwnProperty(loc)) {
-        this.trace(x, val[loc], `${path};${loc}`);
-      } else if (loc === '*') {
-        this.walk(loc, x, val, path, (m, l, x2, v, p) => {
-          this.trace(`${m};${x2}`, v, p);
-        });
-      } else if (loc === '..') {
+      if (loc === '..') {
         this.trace(x, val, path);
         this.walk(loc, x, val, path, (m, l, x2, v, p) => {
           if (typeof v[m] === 'object') {
             this.trace(`..;${x2}`, v[m], `${p};${m}`);
           }
         });
+      } else if (val && val.hasOwnProperty(loc)) {
+        this.trace(x, val[loc], `${path};${loc}`);
+      } else if (loc === '*') {
+        this.walk(loc, x, val, path, (m, l, x2, v, p) => {
+          this.trace(`${m};${x2}`, v, p);
+        });
       } else if (/^\(.*?\)$/.test(loc)) { // [(expr)]
-        this.trace(
-          `${this.processEval(loc, val)};${x}`,
-          val, path);
+        this.trace(`${this.processEval(loc, val)};${x}`, val, path);
       } else if (/^\?\(.*?\)$/.test(loc)) { // [?(expr)]
         this.walk(loc, x, val, path, (m, l, x2, v, p) => {
           if (this.processEval(l.replace(/^\?\((.*?)\)$/, '$1'),
@@ -79,20 +85,21 @@ export default class JsonPath {
     }
   }
 
-  walk(loc, expr, val, path, f) {
-    if (this.isArray(val)) {
-      const n = val.length;
-      for (let i = 0; i < n; i++) {
-        if (i in val) {
-          f(i, loc, expr, val, path);
+  // walk(loc, expr, val, path, f)
+  walk(...args) {
+    if (this.isArray(args[2])) {
+      const n = args[2].length;
+      for (let i = n; i >= 0; i--) {
+        if (i in args[2]) {
+          args[4](i, args[0], args[1], args[2], args[3]);
         }
       }
-    } else if (typeof val === 'object') {
-      Object.keys(val).forEach((m) => {
-        if (val.hasOwnProperty(m)) {
-          f(m, loc, expr, val, path);
-        }
-      });
+    } else if (typeof args[2] === 'object') {
+      const arr = Object.keys(args[2]);
+      let i = arr.length;
+      while (i--) {
+        if (args[2].hasOwnProperty(arr[i])) args[4](arr[i], args[0], args[1], args[2], args[3]);
+      }
     }
   }
 

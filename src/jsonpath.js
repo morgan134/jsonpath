@@ -29,8 +29,6 @@ function jsonPath(obj, expr, arg) {
          return !!p;
       },
       trace: function(expr, val, path) {
-            console.log('expr ---');
-            console.log(expr);
          if (expr !== "") {
             var x = expr.split(";"), loc = x.shift();
             x = x.join(";");
